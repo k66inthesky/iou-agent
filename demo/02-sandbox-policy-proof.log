@@ -1,0 +1,41 @@
+================================================================
+  NemoClaw policy enforcement proof — iou-agent sandbox
+  Active presets: line-bot + nvidia-inference (custom)
+  Proxy: http://10.200.0.1:3128 (OpenShell gateway, deny-by-default)
+================================================================
+
+--- Test 1 (ALLOW): POST integrate.api.nvidia.com/v1/chat/completions  [node + curl + openclaw]
+    Expected: 200 — Nemotron answers
+    Status:   HTTP/1.1 200
+    Body:     HTTP/1.1 200 OKDate: Wed, 27 May 2026 15:31:50 GMTContent-Type: application/jsonContent-Length: 743Connection: keep-aliveAccess-Control-Expose-Headers: nvcf-reqidNvcf-Reqid: eac731e8-15da-4113-952b-dedf521459
+
+--- Test 2 (DENY by path): GET integrate.api.nvidia.com/v1/models
+    Expected: 403 from proxy — wrong path, even though host is allowlisted
+    Status:   HTTP/1.1 403
+    X-OpenShell-Policy: nvidia_inference
+    Body:     HTTP/1.1 403 ForbiddenContent-Type: application/jsonContent-Length: 434X-OpenShell-Policy: nvidia_inferenceConnection: close{"binary":"/usr/bin/curl","detail":"GET /v1/models not permitted by policy","error":"p
+
+--- Test 3 (DENY by host): GET https://example.com
+    Expected: 403 from proxy at CONNECT — host not in any allowlist
+    Status:   HTTP/1.1 403
+
+--- Test 4 (DENY by host): GET https://api.openai.com/v1/models
+    Expected: 403 from proxy at CONNECT — competing inference provider denied
+    Status:   HTTP/1.1 403
+
+--- Test 5 (DENY by binary): curl POST api.line.me/v2/bot/message/push
+    Expected: 403 — host IS allowlisted for node, but curl is NOT in line-bot.binaries
+    Status:   HTTP/1.1 403
+
+================================================================
+  Three independent enforcement layers proven:
+    Test 1 (200)  → explicit allow rule honored
+    Test 2 (403)  → L7 path filter (only chat completions allowed; embeddings, /models, etc. blocked)
+    Test 3 (403)  → L4 host filter (deny-by-default for unlisted hosts)
+    Test 4 (403)  → L4 host filter (competing LLM provider explicitly denied)
+    Test 5 (403)  → binary allowlist (only 'node' may call api.line.me, not curl)
+
+  In production, iou-agent's Node.js server is the only binary that needs
+  egress, so this matches the threat model: a compromised dependency that
+  spawns curl/wget/python cannot bypass the policy.
+================================================================

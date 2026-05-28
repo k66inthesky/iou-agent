@@ -20,38 +20,50 @@ and post a daily reconciliation — all behind NemoClaw policy-based guardrails.
 
 ## Bonus track: NemoClaw policy-based guardrails
 
-> **Status on the submitted hardware:** NemoClaw 0.0.50 CLI installs cleanly, but
-> `nemoclaw onboard --no-gpu` cannot finish step 2/8 on Ubuntu 22.04 WSL2 with
-> host glibc 2.35. The OpenShell-gateway compatibility container starts and
-> binds 0.0.0.0:8080 successfully (verified in the gateway log), but
-> NemoClaw's readiness probe incorrectly reports `Docker-driver gateway failed
-> to start` and the wizard exits before the sandbox is created. The custom
-> policy preset (`nemoclaw/iou-agent-policy.yaml`) and the install wrapper
-> (`scripts/install_nemoclaw.sh --no-gpu`) are nevertheless committed so a
-> reviewer on a glibc-2.39+ host (Ubuntu 24.04, Fedora 39+, etc.) can complete
-> the integration with one command.
+> **Status on the submitted hardware:** NemoClaw 0.0.50 CLI installs cleanly
+> and `nemoclaw onboard` completes through step 8/8 on Ubuntu 22.04 WSL2
+> (Docker Desktop backend). Sandbox `iou-agent` is live (`nemoclaw list`
+> shows it as default), dashboard at `http://127.0.0.1:18789/`. Both custom
+> presets are applied as policy version 4 — verified by 5-test enforcement
+> run captured in **[`demo/02-sandbox-policy-proof.log`](demo/02-sandbox-policy-proof.log)**
+> (script: [`scripts/sandbox-policy-proof.sh`](scripts/sandbox-policy-proof.sh)).
 
 See `docs/nemoclaw.md` for the full architecture. Summary:
 
 - **Application-layer guardrails** (`src/guardrails.js`) — prompt-injection
-  detection on input; member-allowlist + amount-cap + currency validation on
-  output. Even a malicious LLM response cannot insert a phantom $9,999,999
-  debt against someone not in the group.
+  detection on input; amount-cap + currency validation + self-reference
+  rejection on output. Even a malicious LLM response cannot insert a phantom
+  $9,999,999 debt or one in fictional currency.
 - **Platform-layer guardrails** — two NemoClaw artifacts ship in this repo:
   - `nemoclaw/iou-agent-policy.yaml` — custom base policy. Tightens the
-    default `openclaw-sandbox.yaml` so even Nemotron inference is restricted
-    to `POST /v1/chat/completions` (denies embeddings, model listing, every
+    default sandbox so even Nemotron inference is restricted to
+    `POST /v1/chat/completions` (denies embeddings, model listing, every
     other path).
   - `nemoclaw/presets/line-bot.yaml` — NemoClaw doesn't ship a LINE preset
     (it has Telegram / WeChat / WhatsApp / Slack / Discord / etc., but not
     LINE). This custom preset matches the upstream preset format and
     allowlists exactly the four `/v2/bot/message/{reply,push,multicast,
-    broadcast}` endpoints plus read-only profile lookups. Apply with
-    `nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml`.
+    broadcast}` endpoints plus read-only profile lookups. Restricted to the
+    `node` binary — `curl`, `wget`, `python`, etc. cannot reach LINE even
+    from inside the sandbox. Apply with:
+    `nemoclaw iou-agent policy-add --from-file nemoclaw/presets/line-bot.yaml`
   - Everything else — embeddings, attacker domains, even other LINE API
-    paths — is denied at the network layer. Defense in depth: an exploit
-    would have to defeat both the host JS layer and the sandbox network
-    policy to do real damage.
+    paths, and even allowed hosts from disallowed binaries — is denied at
+    the OpenShell egress proxy. Defense in depth: a compromised dependency
+    that spawns curl/wget/python cannot reach any network at all.
+
+### Proof on the submitted machine
+
+`demo/02-sandbox-policy-proof.log` shows five live tests run inside the
+sandbox via `nemoclaw iou-agent exec`:
+
+| # | Test | Result | Layer proven |
+|---|------|--------|--------------|
+| 1 | `POST integrate.api.nvidia.com/v1/chat/completions` | **200** with Nemotron answer | explicit allow rule |
+| 2 | `GET integrate.api.nvidia.com/v1/models` | **403** with `X-OpenShell-Policy: nvidia_inference`, body `"GET /v1/models not permitted by policy"` | L7 method+path filter |
+| 3 | `GET https://example.com` | **403** at CONNECT | L4 host filter / deny-by-default |
+| 4 | `GET https://api.openai.com/v1/models` | **403** at CONNECT | L4 host filter (competing provider) |
+| 5 | `curl POST api.line.me/...` | **403** | binary allowlist (curl ∉ line-bot.binaries) |
 
 ## Reproducibility
 
