@@ -1,0 +1,27 @@
+{
+  "name": "iou-agent",
+  "version": "0.1.0",
+  "description": "LINE group IOU tracker powered by NVIDIA Nemotron, sandboxed via NemoClaw. NVIDIA Agent Hackathon entry.",
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test:extract": "node scripts/test_extract.js",
+    "summary:now": "node scripts/run_summary_now.js",
+    "demo:seed": "node scripts/seed_demo.js",
+    "balances": "node scripts/balances.js"
+  },
+  "dependencies": {
+    "@line/bot-sdk": "^9.5.0",
+    "better-sqlite3": "^11.5.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "openai": "^4.77.0"
+  },
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "license": "Apache-2.0"
+}

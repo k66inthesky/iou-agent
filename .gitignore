@@ -1,0 +1,44 @@
+# --- Secrets — NEVER commit ---
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+credentials.json
+*-credentials.json
+cloudflared-*.json
+.cloudflared/
+
+# --- Runtime data (contains real user IDs / group IDs / amounts) ---
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+logs/
+*.log
+
+# --- Node ---
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# --- OS / editor junk ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Claude Code / AI assistant workspace (session-specific, not for the repo) ---
+.claude/
+.claude.json
+.claude.local.json
+CLAUDE.local.md
+.anthropic/
+.aider*
+.cursor/

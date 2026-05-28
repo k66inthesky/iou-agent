@@ -1,0 +1,52 @@
+# LINE Messaging Bot preset for NemoClaw.
+#
+# Apply with:
+#   nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml --sandbox iou-agent
+#
+# Format mirrors NemoClaw's built-in presets (e.g. telegram.yaml, wechat.yaml).
+# NemoClaw ships presets for Telegram / WeChat / WhatsApp / Slack / Discord
+# but NOT for LINE — this preset fills that gap for iou-agent.
+
+preset:
+  name: line-bot
+  description: "LINE Messaging API (api.line.me) reply + push + profile endpoints, deny-by-default for everything else."
+
+network_policies:
+  line_messaging:
+    name: line_messaging
+    endpoints:
+      # Reply, push, multicast, broadcast — outbound to LINE
+      - host: api.line.me
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: { method: POST, path: "/v2/bot/message/reply" }
+          - allow: { method: POST, path: "/v2/bot/message/push" }
+          - allow: { method: POST, path: "/v2/bot/message/multicast" }
+          - allow: { method: POST, path: "/v2/bot/message/broadcast" }
+          # Profile lookups for resolving display names
+          - allow: { method: GET, path: "/v2/bot/profile/*" }
+          - allow: { method: GET, path: "/v2/bot/group/*/member/*" }
+          - allow: { method: GET, path: "/v2/bot/room/*/member/*" }
+          - allow: { method: GET, path: "/v2/bot/group/*/summary" }
+    binaries:
+      - { path: /usr/local/bin/node }
+      - { path: /usr/bin/node }
+
+  # Sticker / image content is fetched separately; iou-agent does not need
+  # this today but listing it would be wise for future media support.
+  # Commented out — opt in by uncommenting if you handle non-text messages.
+  # line_data:
+  #   name: line_data
+  #   endpoints:
+  #     - host: api-data.line.me
+  #       port: 443
+  #       protocol: rest
+  #       enforcement: enforce
+  #       rules:
+  #         - allow: { method: GET, path: "/v2/bot/message/*/content" }
+  #         - allow: { method: GET, path: "/v2/bot/message/*/content/preview" }
+  #   binaries:
+  #     - { path: /usr/local/bin/node }
+  #     - { path: /usr/bin/node }
