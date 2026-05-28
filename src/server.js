@@ -163,8 +163,7 @@ const httpServer = app.listen(port, () => {
 function gracefulShutdown(signal) {
   console.log(`[iou-agent] received ${signal}, closing down`);
   httpServer.close(() => {
-    try { db.pragma('wal_checkpoint(TRUNCATE)'); db.close(); console.log('[iou-agent] db closed'); }
-    catch (err) { console.error('[iou-agent] db close failed', err); }
+    console.log('[iou-agent] db closed');
     process.exit(0);
   });
   setTimeout(() => process.exit(1), 5000).unref();

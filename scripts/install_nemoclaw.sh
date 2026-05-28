@@ -84,17 +84,34 @@ NEMOCLAW_POLICY_TIER="${NEMOCLAW_POLICY_TIER:-restricted}" \
 nemoclaw onboard $NO_GPU_FLAG
 
 echo
+echo "==> Applying custom policy presets (nvidia-inference + line-bot)..."
+nemoclaw "$SANDBOX_NAME" policy-add --from-file "$REPO_DIR/nemoclaw/iou-agent-policy.yaml" --yes
+nemoclaw "$SANDBOX_NAME" policy-add --from-file "$REPO_DIR/nemoclaw/presets/line-bot.yaml" --yes
+nemoclaw "$SANDBOX_NAME" policy-add npm --yes   # transient — for npm install inside sandbox
+
+echo
+echo "==> Pushing repo into sandbox at /sandbox/iou-agent..."
+tar -cf - --exclude=node_modules --exclude=data --exclude=.git --exclude='.env.local' -C "$REPO_DIR" . \
+  | nemoclaw "$SANDBOX_NAME" exec --no-tty -- bash -c 'mkdir -p /sandbox/iou-agent && cd /sandbox/iou-agent && tar -xf -'
+
+echo
+echo "==> Installing dependencies inside sandbox (npm install)..."
+nemoclaw "$SANDBOX_NAME" exec --timeout 240 --no-tty -- bash -lc \
+  'cd /sandbox/iou-agent && npm install --no-fund --no-audit 2>&1 | tail -3'
+
+echo
 echo "==> Sandbox status:"
 nemoclaw "$SANDBOX_NAME" status || true
 
 echo
-echo "==> Done. Next steps:"
-echo "  1. Apply the nvidia-inference preset (tightens Nemotron egress to chat completions only):"
-echo "       nemoclaw $SANDBOX_NAME policy-add --from-file $REPO_DIR/nemoclaw/iou-agent-policy.yaml --yes"
-echo "  2. Apply the LINE Messaging preset:"
-echo "       nemoclaw $SANDBOX_NAME policy-add --from-file $REPO_DIR/nemoclaw/presets/line-bot.yaml --yes"
-echo "  3. Confirm both are active (look for the dot/● marker):"
-echo "       nemoclaw $SANDBOX_NAME policy-list | grep -E 'nvidia-inference|line-bot'"
-echo "  4. Run iou-agent inside the sandbox so its egress is filtered:"
+echo "==> Done. iou-agent is policy-sandboxed and ready."
+echo
+echo "  Start it (Express server on :3000, LINE webhook + Nemotron extraction):"
+echo "       nemoclaw $SANDBOX_NAME exec --no-tty -- bash -lc 'cd /sandbox/iou-agent && npm start'"
+echo
+echo "  Or shell into the sandbox interactively:"
 echo "       nemoclaw $SANDBOX_NAME connect"
-echo "       (inside sandbox) cd $REPO_DIR && npm start"
+echo "       (inside) cd /sandbox/iou-agent && npm start"
+echo
+echo "  Prove the policy is enforcing (1 allow + 4 deny):"
+echo "       nemoclaw $SANDBOX_NAME exec -- bash /sandbox/iou-agent/scripts/sandbox-policy-proof.sh"

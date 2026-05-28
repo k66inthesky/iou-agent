@@ -96,10 +96,20 @@ grep -E "^NVIDIA_API_KEY=" .env && echo "OK: .env 有設 NVIDIA_API_KEY"
 
 ```bash
 ./scripts/install_nemoclaw.sh
-nemoclaw iou-agent policy-add --from-file ./nemoclaw/iou-agent-policy.yaml --yes
-nemoclaw iou-agent policy-add --from-file ./nemoclaw/presets/line-bot.yaml --yes
+```
 
-# 確認兩個 custom preset 都套上了（行首應有 ● 標記）：
+這個 script 會一次做完：onboard sandbox、套兩個 custom preset (`nvidia-inference`、`line-bot`)、把 repo 推進 `/sandbox/iou-agent`、在 sandbox 內跑 `npm install`。
+
+跑完之後啟動 iou-agent：
+
+```bash
+# 在 sandbox 內啟動 server（policy 自動過濾出站流量）
+nemoclaw iou-agent exec --no-tty -- bash -lc 'cd /sandbox/iou-agent && npm start'
+
+# 證明 policy 真的在擋（1 個 allow + 4 個 deny）
+nemoclaw iou-agent exec -- bash /sandbox/iou-agent/scripts/sandbox-policy-proof.sh
+
+# 確認 preset 是 active（行首 ● 標記）
 nemoclaw iou-agent policy-list | grep -E "nvidia-inference|line-bot"
 ```
 
