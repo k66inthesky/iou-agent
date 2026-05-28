@@ -59,33 +59,99 @@ flowchart LR
 
 ---
 
-## 跑起來接 LINE / Run as a LINE bot
+## 安裝到執行 / Install to running
 
-最少 3 步從 `git clone` 到「群組裡發訊息看到 bot 回」：
+從 `git clone` 到「群組裡發訊息看到 bot 回」，照這個順序做。
+
+### 1. 準備 `.env`
 
 ```bash
-# 1) 安裝依賴
-npm install
-
-# 2) 啟動 server（會聽 :3000、daily summary cron 上線）
-npm start
-#   → [iou-agent] listening on :3000
-
-# 3) 另開一個 terminal，把 :3000 暴露為公開 HTTPS URL
-cloudflared tunnel --url http://localhost:3000
-#   → 印出 https://xxx.trycloudflare.com
-#     把這個 URL + "/webhook" 貼進
-#     LINE Developers Console → Messaging API → Webhook URL → Update → Verify
+cp .env.example .env
+# 編輯 .env，填入：
+#   LINE_CHANNEL_SECRET=xxx          ← 從 LINE Developers Console > Basic settings
+#   LINE_CHANNEL_ACCESS_TOKEN=xxx    ← 從 LINE Developers Console > Messaging API
+#   NVIDIA_API_KEY=nvapi-xxx         ← 從 https://build.nvidia.com/
 ```
 
-Verify 回 `Success` 後，把 bot 加進任一個 LINE 群組，發「我幫 Bob 墊了 200」就會看到 bot 回 `已更新紀錄...`。
+詳細申請步驟見 [`docs/setup-line.md`](docs/setup-line.md)、[`docs/setup-nvidia.md`](docs/setup-nvidia.md)。
 
-> ⚠️ **不要用 localtunnel 給 LINE webhook**——它對未知 IP 的第一次請求會跳「click to continue」攔截頁，LINE 是 server-to-server 沒辦法按按鈕，會 timeout 變 408。localtunnel 適合給人類瀏覽器看的網站，**不適合 webhook**。
->
-> **其他可用方案**（都對 POST 沒攔截）：
-> - `ngrok http 3000` — 需註冊免費帳號拿 authtoken，URL 穩定
-> - `ssh -R 80:localhost:3000 serveo.net` — 純 SSH，0 安裝
->
+### 2. 安裝依賴
+
+```bash
+npm install
+```
+
+### 3. 開 **Terminal #1**：啟動 server（**保持開著**）
+
+```bash
+npm start
+```
+
+看到下面 2 行表示成功，這個視窗不要關：
+
+```
+[iou-agent] listening on :3000
+[scheduler] daily summary cron="50 17 * * *" tz=Asia/Taipei
+```
+
+### 4. 開 **Terminal #2**：啟動 tunnel（**保持開著**）
+
+```bash
+cloudflared tunnel --url http://localhost:3000
+```
+
+往下捲找到方框裡的 URL：
+
+```
++--------------------------------------------------------------------------------------------+
+|  Your quick Tunnel has been created!                                                       |
+|  https://xxx-xxx-xxx-xxx.trycloudflare.com                ← 把這個 URL 複製下來            |
++--------------------------------------------------------------------------------------------+
+```
+
+> ⚠️ **不要用 localtunnel**——它對未知 IP 的第一次請求會跳「click to continue」攔截頁，LINE 是 server-to-server 沒辦法按按鈕，會回 408 timeout。
+
+### 5. 設定 LINE Webhook URL
+
+去 [LINE Developers Console](https://developers.line.biz/console/) → 你的 channel → **Messaging API** 分頁 → **Webhook settings** 區塊：
+
+1. 按 **Edit**，貼上 `https://xxx-xxx-xxx-xxx.trycloudflare.com/webhook`（**結尾加 `/webhook`**）
+2. 按 **Update**
+3. 按 **Verify** → 預期回綠色 **Success**
+4. **`Use webhook` 開關打開（綠色）**
+
+### 6. 關掉 LINE 內建自動回覆（重要）
+
+同一頁找 **LINE Official Account features**，按 **Greeting messages** 旁的 **Edit**（會跳到 LINE Official Account Manager）：
+
+- **Greeting messages** → **Disabled**
+- **Auto-reply messages** → **Disabled**
+- **Webhooks** → **Enabled**
+
+不關掉的話 LINE 會搶在 iou-agent 之前回預設訊息。
+
+### 7. 允許 bot 加入群組
+
+回 LINE Developers Console，**Messaging API** 分頁：
+
+- **Allow bot to join group chats** → **Edit** → **Enabled**
+
+### 8. 把 bot 拉進群組
+
+- **Messaging API** 分頁最上方有 **QR code**
+- 手機 LINE 掃 → 加 bot 為好友
+- 開一個測試群組（或建一個只有你的）→ 邀剛加的 bot 進群
+
+### 9. 在群組裡發訊息測試
+
+```
+我幫 Bob 墊了 200
+```
+
+預期：
+- Terminal #1 印出 `[msg] text="我幫 Bob 墊了 200"` → `[extract] is_iou=true events=1` → DB 寫入 → reply
+- LINE 群組看到 bot 回 `已更新紀錄...`
+
 > 想要**固定 URL、重啟不變**（適合長期運行）見 [`docs/setup-tunnel.md`](docs/setup-tunnel.md)。
 
 ---

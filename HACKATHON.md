@@ -25,7 +25,7 @@ and post a daily reconciliation — all behind NemoClaw policy-based guardrails.
 > (Docker Desktop backend). Sandbox `iou-agent` is live (`nemoclaw list`
 > shows it as default), dashboard at `http://127.0.0.1:18789/`. Both custom
 > presets are applied as policy version 4 — verified by 5-test enforcement
-> run captured in **[`demo/02-sandbox-policy-proof.log`](demo/02-sandbox-policy-proof.log)**
+> run captured in **[`demo/sandbox-proof-2026-05-28.log`](demo/sandbox-proof-2026-05-28.log)**
 > (script: [`scripts/sandbox-policy-proof.sh`](scripts/sandbox-policy-proof.sh)).
 
 See `docs/nemoclaw.md` for the full architecture. Summary:
@@ -54,7 +54,7 @@ See `docs/nemoclaw.md` for the full architecture. Summary:
 
 ### Proof on the submitted machine
 
-`demo/02-sandbox-policy-proof.log` shows five live tests run inside the
+`demo/sandbox-proof-2026-05-28.log` shows five live tests run inside the
 sandbox via `nemoclaw iou-agent exec`:
 
 | # | Test | Result | Layer proven |
