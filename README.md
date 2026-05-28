@@ -66,13 +66,40 @@ iou-agent 用 **NVIDIA NemoClaw** 把推論跑在沙箱裡，做 **defense-in-de
 
 設定 NemoClaw：
 
+**前置條件 / Prerequisites**
+
+NemoClaw 沙箱在 Docker 容器裡跑，所以執行安裝腳本前，請先確認：
+
+1. **Docker Desktop 已開啟**（Windows / macOS 使用者）— 從工作列／選單列開啟 Docker Desktop，等到鯨魚 icon 變綠（穩定狀態）。
+2. **WSL2 使用者**：Docker Desktop → Settings → Resources → **WSL Integration**，把你的 distro 打開。
+3. **Linux 原生使用者**：用 `docker-ce`，並確認 `docker ps` 不會跳權限錯誤（必要時把使用者加進 `docker` group）。
+4. **`NVIDIA_API_KEY`** 已寫進 `.env`（從 https://build.nvidia.com/ 申請）。
+
+驗證環境準備好了：
+
+```bash
+docker ps          # 應該要列出容器列表（即使是空的），不能報 daemon 連不到
+echo $NVIDIA_API_KEY  # 應該有值，或 .env 裡有這行
+```
+
+**安裝 / Install**
+
 ```bash
 ./scripts/install_nemoclaw.sh
 nemoclaw policy apply --preset ./nemoclaw/iou-agent-policy.yaml --sandbox iou-agent
 nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml --sandbox iou-agent
 ```
 
-兩個 YAML 都在 [`nemoclaw/`](nemoclaw/) 裡，細節見 [`docs/nemoclaw.md`](docs/nemoclaw.md)。
+常見錯誤：
+
+| 錯誤訊息 | 原因 / 解法 |
+|---|---|
+| `ERROR: docker daemon not reachable` | Docker Desktop 沒開，或 WSL Integration 沒打開。回到上面前置條件第 1、2 步。 |
+| `ERROR: docker not on PATH` | 同上，Docker Desktop 沒裝或 WSL Integration 沒打開。 |
+| `ERROR: NVIDIA_API_KEY is not set` | `.env` 裡沒這行，或直接用 `NVIDIA_API_KEY=xxx ./scripts/install_nemoclaw.sh` 傳進來。 |
+| `nemoclaw onboard` 卡在 step 2/8（WSL2） | Docker Desktop 對 `--network host` 的相容性問題，見 [`docs/nemoclaw.md`](docs/nemoclaw.md#status-on-the-submission-hardware) 的三個 fix paths。 |
+
+兩個 YAML 都在 [`nemoclaw/`](nemoclaw/) 裡，更多細節（防護欄分層、攻擊面分析、WSL2 已知問題）見 [`docs/nemoclaw.md`](docs/nemoclaw.md)。
 
 ---
 
