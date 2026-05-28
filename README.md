@@ -55,16 +55,45 @@ flowchart LR
 | **NVIDIA Build API key**（免費 ~1000 credits） | https://build.nvidia.com/ | [`docs/setup-nvidia.md`](docs/setup-nvidia.md) |
 | **Cloudflare Tunnel**（給 LINE webhook 用的 HTTPS URL） | 一行 `cloudflared tunnel --url http://localhost:3000` | [`docs/setup-tunnel.md`](docs/setup-tunnel.md) |
 
-把這三組值填進 `.env`（複製 `.env.example`），就可以 `npm start`。
+把這三組值填進 `.env`（複製 `.env.example`），就可以照下面跑起來。
+
+---
+
+## 跑起來接 LINE / Run as a LINE bot
+
+最少 3 步從 `git clone` 到「群組裡發訊息看到 bot 回」：
+
+```bash
+# 1) 安裝依賴
+npm install
+
+# 2) 啟動 server（會聽 :3000、daily summary cron 上線）
+npm start
+#   → [iou-agent] listening on :3000
+
+# 3) 另開一個 terminal，把 :3000 暴露為公開 HTTPS URL
+cloudflared tunnel --url http://localhost:3000
+#   → 印出 https://xxx.trycloudflare.com — 把這個 URL + "/webhook" 貼進
+#     LINE Developers Console → Messaging API → Webhook URL → Verify
+```
+
+Verify 回 200 後，把 bot 加進任一個 LINE 群組，發「我幫 Bob 墊了 200」就會看到 bot 回 `已更新紀錄...`。
+
+> 穩定版（固定 URL、重啟不變）見 [`docs/setup-tunnel.md`](docs/setup-tunnel.md)。
 
 ---
 
 ## 原則導向防護欄 / Policy-based guardrails
 
-iou-agent 用 **NVIDIA NemoClaw** 把推論跑在沙箱裡，做 **defense-in-depth** 兩層防護：
+iou-agent 用 **NVIDIA NemoClaw** 把推論放進沙箱，做 **defense-in-depth** 兩層防護：
 
 - **應用層**（`src/guardrails.js`）— 輸入端擋 prompt injection、輸出端擋金額溢位／非法幣別／自欠自。
 - **平台層**（NemoClaw policy）— 沙箱只允許 `POST integrate.api.nvidia.com/v1/chat/completions` 和 `POST api.line.me/v2/bot/message/*`，其他全 deny。
+
+> **這節是「安全證明 demo」，不是日常 LINE bot 運作路徑。**
+> LINE webhook 對外靠 cloudflared，cloudflared 跑在 host 比較單純（見上節）。
+> 這節示範**同一份 code 也能在 NemoClaw 沙箱裡正常啟動**，且五個 enforcement 測試（1 allow + 4 deny）全部通過——這就是 hackathon 的 bonus 證據。
+> 完整 proof log 見 [`demo/sandbox-proof-2026-05-28.log`](demo/sandbox-proof-2026-05-28.log)。
 
 設定 NemoClaw：
 
@@ -100,16 +129,18 @@ grep -E "^NVIDIA_API_KEY=" .env && echo "OK: .env 有設 NVIDIA_API_KEY"
 
 這個 script 會一次做完：onboard sandbox、套兩個 custom preset (`nvidia-inference`、`line-bot`)、把 repo 推進 `/sandbox/iou-agent`、在 sandbox 內跑 `npm install`。
 
-跑完之後啟動 iou-agent：
+跑完之後驗證沙箱內一切正常：
 
 ```bash
-# 在 sandbox 內啟動 server（policy 自動過濾出站流量）
+# 1. 在 sandbox 內啟動 server（驗證 native 依賴 0 個、純 JS、能在不同 glibc 跑）
 nemoclaw iou-agent exec --no-tty -- bash -lc 'cd /sandbox/iou-agent && npm start'
+# 預期看到：[iou-agent] listening on :3000
+# 預期看到：[scheduler] daily summary cron="50 17 * * *" tz=Asia/Taipei
 
-# 證明 policy 真的在擋（1 個 allow + 4 個 deny）
+# 2. 跑 enforcement proof（5 個 curl：1 通 4 擋，證明 policy 是活的）
 nemoclaw iou-agent exec -- bash /sandbox/iou-agent/scripts/sandbox-policy-proof.sh
 
-# 確認 preset 是 active（行首 ● 標記）
+# 3. 確認兩個 custom preset 是 active（行首 ● 標記）
 nemoclaw iou-agent policy-list | grep -E "nvidia-inference|line-bot"
 ```
 
