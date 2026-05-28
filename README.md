@@ -91,7 +91,7 @@ npm start
 
 ```
 [iou-agent] listening on :3000
-[scheduler] daily summary cron="50 17 * * *" tz=Asia/Taipei
+[scheduler] daily summary cron="0 9 * * *" tz=Asia/Taipei
 ```
 
 ### 4. 開 **Terminal #2**：啟動 tunnel（**保持開著**）
@@ -208,7 +208,7 @@ grep -E "^NVIDIA_API_KEY=" .env && echo "OK: .env 有設 NVIDIA_API_KEY"
 # 1. 在 sandbox 內啟動 server（驗證 native 依賴 0 個、純 JS、能在不同 glibc 跑）
 nemoclaw iou-agent exec --no-tty -- bash -lc 'cd /sandbox/iou-agent && npm start'
 # 預期看到：[iou-agent] listening on :3000
-# 預期看到：[scheduler] daily summary cron="50 17 * * *" tz=Asia/Taipei
+# 預期看到：[scheduler] daily summary cron="0 9 * * *" tz=Asia/Taipei
 
 # 2. 跑 enforcement proof（5 個 curl：1 通 4 擋，證明 policy 是活的）
 nemoclaw iou-agent exec -- bash /sandbox/iou-agent/scripts/sandbox-policy-proof.sh
