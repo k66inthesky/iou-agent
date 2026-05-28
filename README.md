@@ -53,7 +53,7 @@ flowchart LR
 |---|---|---|
 | **LINE Messaging API channel**（免費） | https://developers.line.biz/console/ | [`docs/setup-line.md`](docs/setup-line.md) |
 | **NVIDIA Build API key**（免費 ~1000 credits） | https://build.nvidia.com/ | [`docs/setup-nvidia.md`](docs/setup-nvidia.md) |
-| **Cloudflare Tunnel**（給 LINE webhook 用的 HTTPS URL） | 一行 `cloudflared tunnel --url http://localhost:3000` | [`docs/setup-tunnel.md`](docs/setup-tunnel.md) |
+| **HTTPS tunnel**（給 LINE webhook 用的公開 URL） | 一行 `npx --yes localtunnel --port 3000`（或 cloudflared／ngrok／serveo） | [`docs/setup-tunnel.md`](docs/setup-tunnel.md) |
 
 把這三組值填進 `.env`（複製 `.env.example`），就可以照下面跑起來。
 
@@ -72,14 +72,22 @@ npm start
 #   → [iou-agent] listening on :3000
 
 # 3) 另開一個 terminal，把 :3000 暴露為公開 HTTPS URL
-cloudflared tunnel --url http://localhost:3000
-#   → 印出 https://xxx.trycloudflare.com — 把這個 URL + "/webhook" 貼進
+npx --yes localtunnel --port 3000
+#   → your url is: https://xxx.loca.lt
+#     把這個 URL + "/webhook" 貼進
 #     LINE Developers Console → Messaging API → Webhook URL → Verify
 ```
 
 Verify 回 200 後，把 bot 加進任一個 LINE 群組，發「我幫 Bob 墊了 200」就會看到 bot 回 `已更新紀錄...`。
 
-> 穩定版（固定 URL、重啟不變）見 [`docs/setup-tunnel.md`](docs/setup-tunnel.md)。
+> **為什麼 localtunnel？** 一行 `npx` 直接跑，不必裝任何軟體、不必註冊帳號，URL 立刻拿到。
+>
+> **其他可選方案**：
+> - `cloudflared tunnel --url http://localhost:3000` — 需先裝 cloudflared，URL 穩定度較高
+> - `ngrok http 3000` — 需註冊免費帳號拿 authtoken
+> - `ssh -R 80:localhost:3000 serveo.net` — 純 SSH，0 安裝
+>
+> 想要**固定 URL、重啟不變**（適合長期運行）見 [`docs/setup-tunnel.md`](docs/setup-tunnel.md)。
 
 ---
 
