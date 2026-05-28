@@ -73,15 +73,23 @@ iou-agent 用 **NVIDIA NemoClaw** 把推論跑在沙箱裡，做 **defense-in-de
 NemoClaw 沙箱在 Docker 容器裡跑，所以執行安裝腳本前，請先確認：
 
 1. **Docker Desktop 已開啟**（Windows / macOS 使用者）— 從工作列／選單列開啟 Docker Desktop，等到鯨魚 icon 變綠（穩定狀態）。
-2. **WSL2 使用者**：Docker Desktop → Settings → Resources → **WSL Integration**，把你的 distro 打開。
+2. **WSL2 使用者**：Docker Desktop → Settings → Resources → **WSL Integration**，把你的 distro 打開，**然後一定要按下方的 `Apply & restart`**（只打勾沒按 Apply 不會生效）。改完設定後另開一個新的 WSL terminal，否則舊 shell 的 PATH 快取還是錯的。
 3. **Linux 原生使用者**：用 `docker-ce`，並確認 `docker ps` 不會跳權限錯誤（必要時把使用者加進 `docker` group）。
-4. **`NVIDIA_API_KEY`** 已寫進 `.env`（從 https://build.nvidia.com/ 申請）。
+4. **`NVIDIA_API_KEY`** 已寫進 `.env`（從 https://build.nvidia.com/ 申請）。注意 `.env` 是給應用程式讀的純文字檔，**bash 不會自動載入**，所以 `echo $NVIDIA_API_KEY` 在 shell 印不出東西是正常的，安裝腳本會自己去 `.env` 撈。
 
 驗證環境準備好了：
 
 ```bash
-docker ps          # 應該要列出容器列表（即使是空的），不能報 daemon 連不到
-echo $NVIDIA_API_KEY  # 應該有值，或 .env 裡有這行
+# Docker：要看到容器列表表頭（即使沒有任何容器），不能報 daemon 連不到
+docker ps
+
+# Integration 真的掛上了嗎？這三項都要通過：
+ls -la /usr/bin/docker          # symlink 指到 /mnt/wsl/docker-desktop/...
+ls /var/run/docker.sock         # socket file 存在
+which -a docker                 # 第一個是 /usr/bin/docker，不是 /mnt/c/...
+
+# NVIDIA_API_KEY：直接看 .env 檔，不要看 shell 變數
+grep -E "^NVIDIA_API_KEY=" .env && echo "OK: .env 有設 NVIDIA_API_KEY"
 ```
 
 **安裝 / Install**
@@ -96,9 +104,10 @@ nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml --sandbox iou-ag
 
 | 錯誤訊息 | 原因 / 解法 |
 |---|---|
-| `ERROR: docker daemon not reachable` | Docker Desktop 沒開，或 WSL Integration 沒打開。回到上面前置條件第 1、2 步。 |
+| `ERROR: docker daemon not reachable` | Docker Desktop 沒開，或 WSL Integration 沒打開／沒 Apply。回到上面前置條件第 1、2 步。 |
 | `ERROR: docker not on PATH` | 同上，Docker Desktop 沒裝或 WSL Integration 沒打開。 |
-| `ERROR: NVIDIA_API_KEY is not set` | `.env` 裡沒這行，或直接用 `NVIDIA_API_KEY=xxx ./scripts/install_nemoclaw.sh` 傳進來。 |
+| `The command 'docker' could not be found in this WSL 2 distro.` | 這段訊息是 Docker Desktop 在 Windows 端那支 stub binary（`/mnt/c/Program Files/Docker/Docker/resources/bin/docker`）印的，代表 Integration 還沒掛上。即使你在 Docker Desktop 介面看到那個 distro 已打勾，常見原因是：(a) 沒按 **Apply & restart**；(b) 按了但 shell 是舊的（PATH 快取了 Windows 路徑），開新 terminal 即可；(c) 偶爾要在 PowerShell 跑 `wsl --shutdown` 後再進 distro。 |
+| `ERROR: NVIDIA_API_KEY is not set` | `.env` 裡沒這行，或直接用 `NVIDIA_API_KEY=xxx ./scripts/install_nemoclaw.sh` 傳進來。注意 `echo $NVIDIA_API_KEY` 印不出來**不代表沒設**，bash 不會讀 `.env`，請用 `grep -E "^NVIDIA_API_KEY=" .env` 確認。 |
 | `nemoclaw onboard` 卡在 step 2/8（WSL2） | Docker Desktop 對 `--network host` 的相容性問題，見 [`docs/nemoclaw.md`](docs/nemoclaw.md#status-on-the-submission-hardware) 的三個 fix paths。 |
 
 兩個 YAML 都在 [`nemoclaw/`](nemoclaw/) 裡，更多細節（防護欄分層、攻擊面分析、WSL2 已知問題）見 [`docs/nemoclaw.md`](docs/nemoclaw.md)。
