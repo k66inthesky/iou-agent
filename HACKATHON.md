@@ -15,8 +15,8 @@ and post a daily reconciliation — all behind NemoClaw policy-based guardrails.
 | **Operates autonomously, no human in the loop** | `src/server.js` Express webhook + `src/scheduler.js` node-cron daily push. Once started, it reacts to every group message without human action. |
 | **Uses Nemotron as the core reasoning model** | `src/nemotron.js` calls `integrate.api.nvidia.com/v1/chat/completions` with a Nemotron model — default `nvidia/nemotron-3-super-120b-a12b` (also runs on `llama-3.1-nemotron-70b-instruct` or `nemotron-nano-8b-v1` via the `NEMOTRON_MODEL` env var). Nemotron is the sole inference engine; no fallback model. |
 | **Solves a real problem (retrieval + automation + analysis + orchestration)** | Real friction: groups of friends/roommates lose track of small debts. iou-agent reads each Chinese sentence ("我幫 B 墊 200"), extracts a structured event, persists it, reconciles balances across all transactions, and posts an authoritative daily summary. |
-| **Deployable + persistent on the user's hardware** | Single `npm start` on any Node 22 host. State is SQLite (`data/iou.db`, WAL mode) so balances survive crashes and restarts. Bot is exposed to LINE via Cloudflare Tunnel (free, stable URL). |
-| **Working code that runs, persists, and performs** | All code in this repo. No demo-only stubs. End-to-end loop verified: real LINE messages → Nemotron extraction → SQLite write → reply within 3 s; daily cron pushes summary at 09:00 Asia/Taipei. |
+| **Deployable + persistent on the user's hardware** | Single `npm start` on any Node 22 host. State is a JSON file (`data/iou.json`) written atomically (write-temp + rename) so balances survive crashes and restarts. Pure JS — zero native deps — so the same code also runs inside a NemoClaw sandbox (different glibc) without recompiling. Bot is exposed to LINE via Cloudflare Tunnel (free, stable URL). |
+| **Working code that runs, persists, and performs** | All code in this repo. No demo-only stubs. End-to-end loop verified: real LINE messages → Nemotron extraction → JSON store write → reply within 3 s; daily cron pushes summary at 09:00 Asia/Taipei. |
 
 ## Bonus track: NemoClaw policy-based guardrails
 
@@ -92,7 +92,7 @@ npm run demo:seed      # seeds fake group data, prints current balances
 - **Node 22**, ES modules
 - **Express** for the LINE webhook
 - **@line/bot-sdk** for signature verification + reply/push
-- **better-sqlite3** for synchronous, file-backed persistence (WAL mode)
+- **Pure-JS JSON-file store** for persistence (atomic write-temp + rename) — zero native deps so the same `node_modules` runs on host glibc 2.35 AND sandbox glibc 2.41
 - **node-cron** for the daily summary
 - **openai** client pointed at `integrate.api.nvidia.com/v1` for Nemotron
 - **NVIDIA NemoClaw** + OpenClaw + OpenShell for sandboxed inference
@@ -104,7 +104,7 @@ npm run demo:seed      # seeds fake group data, prints current balances
 src/server.js          # Express + LINE webhook handler
 src/nemotron.js        # Nemotron client + IOU extraction prompt
 src/guardrails.js      # Application-layer input/output guardrails
-src/db.js              # SQLite schema + balance math
+src/db.js              # JSON-file store + balance math
 src/scheduler.js       # node-cron daily summary
 nemoclaw/iou-agent-policy.yaml  # custom NemoClaw preset (nvidia-inference)
 scripts/install_nemoclaw.sh     # one-shot installer + onboarder
