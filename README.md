@@ -10,6 +10,8 @@
 
 NVIDIA Agent Hackathon 2026 參賽作品。LINE 群組記帳 bot，用 **Nemotron** 讀懂自然語言、**NemoClaw** 做沙箱防護。
 
+
++🎥 [Youtube Demo Video](https://www.youtube.com/watch?v=QAmPNZIoqwM)
 ---
 
 ## 架構 / Architecture
