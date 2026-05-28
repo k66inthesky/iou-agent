@@ -78,7 +78,9 @@ NEMOCLAW_YES=1 \
 NEMOCLAW_AGENT=openclaw \
 NEMOCLAW_PROVIDER="$PROVIDER" \
 NEMOCLAW_SANDBOX_NAME="$SANDBOX_NAME" \
-NEMOCLAW_POLICY_TIER=default \
+# Valid tiers in NemoClaw v0.0.50: restricted | balanced | open.
+# restricted = Nemotron inference + core only (matches iou-agent's deny-by-default posture).
+NEMOCLAW_POLICY_TIER="${NEMOCLAW_POLICY_TIER:-restricted}" \
 nemoclaw onboard $NO_GPU_FLAG
 
 echo
