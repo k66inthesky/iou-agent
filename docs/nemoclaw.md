@@ -36,17 +36,25 @@ reply.
 
 This repo therefore ships:
 
-- **`nemoclaw/presets/line-bot.yaml`** — custom NemoClaw preset matching the
-  built-in preset schema. Allows only `POST /v2/bot/message/{reply,push,
-  multicast,broadcast}` and read-only GETs for profile lookups. Apply with:
+- **`nemoclaw/presets/line-bot.yaml`** — custom NemoClaw preset (preset name
+  `line-bot`) matching the built-in preset schema. Allows only
+  `POST /v2/bot/message/{reply,push,multicast,broadcast}` and read-only GETs
+  for profile lookups. Apply with:
   ```bash
-  nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml --sandbox iou-agent
+  nemoclaw iou-agent policy-add --from-file ./nemoclaw/presets/line-bot.yaml --yes
   ```
 
-- **`nemoclaw/iou-agent-policy.yaml`** — custom base policy that tightens the
-  default `openclaw-sandbox.yaml` so that even Nemotron inference is
-  restricted to `POST /v1/chat/completions` (the only endpoint we need —
-  embeddings, model listing, etc. are denied).
+- **`nemoclaw/iou-agent-policy.yaml`** — custom preset (preset name
+  `nvidia-inference`) that tightens Nemotron egress to `POST /v1/chat/completions`
+  on `integrate.api.nvidia.com` and the managed inference gateway (embeddings,
+  model listing, every other path are denied). Apply with:
+  ```bash
+  nemoclaw iou-agent policy-add --from-file ./nemoclaw/iou-agent-policy.yaml --yes
+  ```
+  The file's original draft also declared `filesystem_policy` / `landlock` /
+  `process` blocks for a full custom *base* policy; NemoClaw v0.0.50's
+  `policy-add` only applies network presets, so those sections were removed.
+  Filesystem and process constraints come from the base sandbox at onboard time.
 
 ## Defense in depth: host + sandbox
 
@@ -127,11 +135,16 @@ Fix paths (any one):
   Fedora 39+, etc.) and the install completes end-to-end without these
   workarounds.
 
-The custom preset (`nemoclaw/presets/line-bot.yaml`), custom base policy
-(`nemoclaw/iou-agent-policy.yaml`), and install wrapper
-(`scripts/install_nemoclaw.sh`) are nevertheless committed so the integration
-works with `./scripts/install_nemoclaw.sh && nemoclaw policy apply --preset
-./nemoclaw/presets/line-bot.yaml --sandbox iou-agent` on a compatible host.
+The two custom presets (`nemoclaw/presets/line-bot.yaml` for LINE,
+`nemoclaw/iou-agent-policy.yaml` for tightened Nemotron egress) and the
+install wrapper (`scripts/install_nemoclaw.sh`) are nevertheless committed so
+the integration works end-to-end on a compatible host with:
+
+```bash
+./scripts/install_nemoclaw.sh
+nemoclaw iou-agent policy-add --from-file ./nemoclaw/iou-agent-policy.yaml --yes
+nemoclaw iou-agent policy-add --from-file ./nemoclaw/presets/line-bot.yaml --yes
+```
 
 ## Verification — proving the policy is real
 

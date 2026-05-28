@@ -1,7 +1,7 @@
 # LINE Messaging Bot preset for NemoClaw.
 #
-# Apply with:
-#   nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml --sandbox iou-agent
+# Apply with (NemoClaw v0.0.50+):
+#   nemoclaw iou-agent policy-add --from-file ./nemoclaw/presets/line-bot.yaml --yes
 #
 # Format mirrors NemoClaw's built-in presets (e.g. telegram.yaml, wechat.yaml).
 # NemoClaw ships presets for Telegram / WeChat / WhatsApp / Slack / Discord

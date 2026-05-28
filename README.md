@@ -96,8 +96,11 @@ grep -E "^NVIDIA_API_KEY=" .env && echo "OK: .env 有設 NVIDIA_API_KEY"
 
 ```bash
 ./scripts/install_nemoclaw.sh
-nemoclaw policy apply --preset ./nemoclaw/iou-agent-policy.yaml --sandbox iou-agent
-nemoclaw policy apply --preset ./nemoclaw/presets/line-bot.yaml --sandbox iou-agent
+nemoclaw iou-agent policy-add --from-file ./nemoclaw/iou-agent-policy.yaml --yes
+nemoclaw iou-agent policy-add --from-file ./nemoclaw/presets/line-bot.yaml --yes
+
+# 確認兩個 custom preset 都套上了（行首應有 ● 標記）：
+nemoclaw iou-agent policy-list | grep -E "nvidia-inference|line-bot"
 ```
 
 常見錯誤：

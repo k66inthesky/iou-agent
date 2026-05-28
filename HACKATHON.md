@@ -34,11 +34,11 @@ See `docs/nemoclaw.md` for the full architecture. Summary:
   detection on input; amount-cap + currency validation + self-reference
   rejection on output. Even a malicious LLM response cannot insert a phantom
   $9,999,999 debt or one in fictional currency.
-- **Platform-layer guardrails** — two NemoClaw artifacts ship in this repo:
-  - `nemoclaw/iou-agent-policy.yaml` — custom base policy. Tightens the
-    default sandbox so even Nemotron inference is restricted to
+- **Platform-layer guardrails** — two NemoClaw custom presets ship in this repo:
+  - `nemoclaw/iou-agent-policy.yaml` (preset name `nvidia-inference`) —
+    tightens Nemotron egress so even the inference call is restricted to
     `POST /v1/chat/completions` (denies embeddings, model listing, every
-    other path).
+    other path on `integrate.api.nvidia.com`).
   - `nemoclaw/presets/line-bot.yaml` — NemoClaw doesn't ship a LINE preset
     (it has Telegram / WeChat / WhatsApp / Slack / Discord / etc., but not
     LINE). This custom preset matches the upstream preset format and
@@ -106,7 +106,7 @@ src/nemotron.js        # Nemotron client + IOU extraction prompt
 src/guardrails.js      # Application-layer input/output guardrails
 src/db.js              # SQLite schema + balance math
 src/scheduler.js       # node-cron daily summary
-nemoclaw/iou-agent-policy.yaml  # custom NemoClaw policy preset
+nemoclaw/iou-agent-policy.yaml  # custom NemoClaw preset (nvidia-inference)
 scripts/install_nemoclaw.sh     # one-shot installer + onboarder
 scripts/test_extract.js         # Nemotron smoke test
 scripts/seed_demo.js            # demo data + CLI balance viewer

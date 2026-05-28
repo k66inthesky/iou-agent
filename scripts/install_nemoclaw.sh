@@ -89,10 +89,12 @@ nemoclaw "$SANDBOX_NAME" status || true
 
 echo
 echo "==> Done. Next steps:"
-echo "  1. Apply the iou-agent custom policy preset:"
-echo "       nemoclaw policy apply --preset $REPO_DIR/nemoclaw/iou-agent-policy.yaml --sandbox $SANDBOX_NAME"
+echo "  1. Apply the nvidia-inference preset (tightens Nemotron egress to chat completions only):"
+echo "       nemoclaw $SANDBOX_NAME policy-add --from-file $REPO_DIR/nemoclaw/iou-agent-policy.yaml --yes"
 echo "  2. Apply the LINE Messaging preset:"
-echo "       nemoclaw policy apply --preset $REPO_DIR/nemoclaw/presets/line-bot.yaml --sandbox $SANDBOX_NAME"
-echo "  3. Run iou-agent inside the sandbox so its egress is filtered:"
+echo "       nemoclaw $SANDBOX_NAME policy-add --from-file $REPO_DIR/nemoclaw/presets/line-bot.yaml --yes"
+echo "  3. Confirm both are active (look for the dot/● marker):"
+echo "       nemoclaw $SANDBOX_NAME policy-list | grep -E 'nvidia-inference|line-bot'"
+echo "  4. Run iou-agent inside the sandbox so its egress is filtered:"
 echo "       nemoclaw $SANDBOX_NAME connect"
 echo "       (inside sandbox) cd $REPO_DIR && npm start"

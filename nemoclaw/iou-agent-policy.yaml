@@ -1,41 +1,27 @@
-# iou-agent custom NemoClaw policy preset.
+# iou-agent custom NemoClaw preset: nvidia-inference
 #
-# Layered on top of the default openclaw-sandbox policy. The default policy
-# already permits POST /v1/chat/completions to integrate.api.nvidia.com — this
-# preset *tightens* the surface to exactly what iou-agent needs:
+# Tightens NVIDIA inference egress to exactly what iou-agent needs:
+#   * POST /v1/chat/completions to integrate.api.nvidia.com (Nemotron)
+#   * POST /v1/chat/completions to the managed inference gateway
+#   * Everything else (embeddings, /v1/models, other hosts) is denied by
+#     virtue of not being listed (deny-by-default).
 #
-#   * Only chat completions (no embeddings, no models list endpoint).
-#   * No outbound HTTP to anywhere except NVIDIA inference and the managed
-#     inference gateway. Everything else is denied by virtue of not being
-#     listed (deny-by-default).
-#   * Read-only filesystem outside the agent's scratch directory.
+# Apply with (NemoClaw v0.0.50+):
+#   nemoclaw iou-agent policy-add --from-file ./nemoclaw/iou-agent-policy.yaml --yes
 #
-# Apply with:
-#   nemoclaw policy apply --preset ./nemoclaw/iou-agent-policy.yaml --sandbox iou-agent
+# Or to apply this preset together with line-bot.yaml in one shot:
+#   nemoclaw iou-agent policy-add --from-dir ./nemoclaw/presets --yes
+#   nemoclaw iou-agent policy-add --from-file ./nemoclaw/iou-agent-policy.yaml --yes
+#
+# Note: The original draft of this file also declared filesystem_policy /
+# landlock / process blocks for a custom *base* policy. NemoClaw v0.0.50's
+# `policy-add` only applies network-policy presets; filesystem and process
+# constraints are set by the base sandbox at onboard time. See
+# docs/nemoclaw.md for the full intended security model.
 
-version: 1
-
-filesystem_policy:
-  include_workdir: true
-  read_only:
-    - /usr
-    - /lib
-    - /proc
-    - /dev/urandom
-    - /app
-    - /etc
-    - /var/log
-    - /sandbox/.openclaw
-  read_write:
-    - /tmp
-    - /dev/null
-
-landlock:
-  compatibility: best_effort
-
-process:
-  run_as_user: sandbox
-  run_as_group: sandbox
+preset:
+  name: nvidia-inference
+  description: "NVIDIA Nemotron inference (integrate.api.nvidia.com + managed gateway) restricted to POST /v1/chat/completions, originating only from node/openclaw binaries."
 
 network_policies:
   iou_inference:
